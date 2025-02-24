@@ -1,5 +1,16 @@
 import flet as ft
 
+#  por hacer 
+
+# la creacion y administracion de los play list
+# una tabla que muestre todos los playlists
+# un search bar 
+
+# hacer un grid view de los playlists 
+
+
+# boton de pausa de play , next and back 
+#
 def main(page: ft.Page):
     page.title = "MusicOrganaizer"
     page.bgcolor = "white"
@@ -36,5 +47,3 @@ def main(page: ft.Page):
     page.add(dropdown, play_btn, audio)
 
 ft.app(target=main)
-
-#laolala
