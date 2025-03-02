@@ -18,10 +18,11 @@ import flet as ft
 def configure_page(page: ft.Page):
     page.title = "Music Organizer"
     page.bgcolor = "white"
-    page.window.height = 600
-    page.window.width = 600
+    page.window.height = 900
+    page.window.width = 900
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    
 
 # Function to handle the file selection and display a snackbar
 def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page, songs: list):
@@ -40,18 +41,44 @@ def create_file_picker(page: ft.Page, songs: list):
     return pick_file_button
 
 # Function to handle the song playing logic
-def play_song(e, selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
-    selected_song = selected_playlist.value
+def play_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
+    selected_song = selected_playlist.value 
     for song in songs:
         if song["name"] == selected_song:
             audio.src = song["url"]
             audio.play()
 
+def stop_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
+    audio.stop()
+
+def next_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
+    current_index = next((index for index, song in enumerate(songs) if song["name"] == selected_playlist.value), None)
+    if current_index is not None:
+        # Get next song, loop back to the first song if we're at the end
+        next_index = (current_index + 1) % len(songs)
+        next_song = songs[next_index]
+        selected_playlist.value = next_song["name"]  # Update the dropdown to reflect the next song
+        audio.src = next_song["url"]
+        audio.play()
+
+def previous_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
+    current_index = next((index for index, song in enumerate(songs) if song["name"] == selected_playlist.value), None)
+    if current_index is not None:
+        # Get previous song, loop to the last song if we're at the beginning
+        previous_index = (current_index - 1) % len(songs)
+        previous_song = songs[previous_index]
+        selected_playlist.value = previous_song["name"]  # Update the dropdown to reflect the previous song
+        audio.src = previous_song["url"]
+        audio.play()
+
 # Function to create the song player UI components
 def create_song_player(songs: list, audio: ft.Audio):
     selected_playlist = ft.Dropdown(options=[ft.dropdown.Option(song["name"]) for song in songs])
-    play_btn = ft.ElevatedButton("▶ Play", on_click=lambda e: play_song(e, selected_playlist, songs, audio))
-    return selected_playlist, play_btn
+    play_btn = ft.ElevatedButton("▶", on_click=lambda e: play_song(selected_playlist, songs, audio))
+    stop_btn = ft.ElevatedButton("⏸", on_click=lambda e: stop_song(selected_playlist, songs, audio))
+    next_btn = ft.ElevatedButton("Next ▶", on_click=lambda e: next_song(selected_playlist, songs, audio))
+    previous_btn = ft.ElevatedButton("◀ Previous", on_click=lambda e: previous_song(selected_playlist, songs, audio))
+    return selected_playlist, play_btn, stop_btn, next_btn, previous_btn
 
 # Function to create the playlist UI components
 def create_playlist_ui(songs: list):
@@ -64,9 +91,10 @@ def main(page: ft.Page):
     # Configure page layout and settings
     configure_page(page)
     
+
     # Define song list (Empty initially)
     songs = []
-    
+
     # Create audio player
     audio = ft.Audio(autoplay=False)
 
@@ -74,13 +102,18 @@ def main(page: ft.Page):
     pick_file_button = create_file_picker(page, songs)
 
     # Create the song player controls (dropdown for song selection, play button)
-    selected_playlist, play_btn = create_song_player(songs, audio)
+    selected_playlist, play_btn, stop_btn, next_btn, previous_btn = create_song_player(songs, audio)
 
     # Create the playlist UI (Displays song names)
     playlist = create_playlist_ui(songs)
-
+    
+    def button_row(align:ft.MainAxisAlignment):
+        return ft.Row(
+        controls=[previous_btn, stop_btn, play_btn, next_btn],alignment=align
+     )
+     
     # Add all components to the page
-    page.add(pick_file_button, selected_playlist, play_btn, playlist)
+    page.add(selected_playlist,button_row(ft.MainAxisAlignment.CENTER),audio, pick_file_button)
 
     # Hardcoded songs (You can replace this with dynamically picked songs if needed)
     songs.append({"name": "Song 1", "url": "path_to_song_1.mp3"})
