@@ -24,16 +24,17 @@ def configure_page(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
 # Function to handle the file selection and display a snackbar
-def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page):
+def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page, songs: list):
     if e.files:
-        file = e.files[0]  
-        page.snack_bar = ft.SnackBar(ft.Text(f"Selected file: {file.name}"))
+        file = e.files[0]
+        songs.append({"name": file.name, "url": file.path})  # Add song to playlist
+        page.snack_bar = ft.SnackBar(ft.Text(f"Added {file.name} to playlist"))
         page.snack_bar.open = True
         page.update()
 
 # Function to initialize the file picker and button
-def create_file_picker(page: ft.Page):
-    file_picker = ft.FilePicker(on_result=lambda e: on_file_selected(e, page))
+def create_file_picker(page: ft.Page, songs: list):
+    file_picker = ft.FilePicker(on_result=lambda e: on_file_selected(e, page, songs))
     page.overlay.append(file_picker)
     pick_file_button = ft.ElevatedButton("Pick a file", on_click=lambda _: file_picker.pick_files())
     return pick_file_button
@@ -52,25 +53,40 @@ def create_song_player(songs: list, audio: ft.Audio):
     play_btn = ft.ElevatedButton("▶ Play", on_click=lambda e: play_song(e, selected_playlist, songs, audio))
     return selected_playlist, play_btn
 
+# Function to create the playlist UI components
+def create_playlist_ui(songs: list):
+    playlist_items = [ft.Text(song["name"]) for song in songs]
+    playlist = ft.Column(controls=playlist_items)
+    return playlist
+
 # Main function to setup and run the app
 def main(page: ft.Page):
     # Configure page layout and settings
     configure_page(page)
     
-    # Define song list
-    songs = [
-        {"name": "Song 1", "url": "path_to_song_1.mp3"},
-        {"name": "Song 2", "url": "path_to_song_2.mp3"}
-    ]
+    # Define song list (Empty initially)
+    songs = []
     
-    # Create audio player and file picker button
+    # Create audio player
     audio = ft.Audio(autoplay=False)
-    pick_file_button = create_file_picker(page)
-    
-    # Create the song player controls (dropdown, play button)
+
+    # Create the file picker button (and dynamically add songs to the playlist)
+    pick_file_button = create_file_picker(page, songs)
+
+    # Create the song player controls (dropdown for song selection, play button)
     selected_playlist, play_btn = create_song_player(songs, audio)
-    
+
+    # Create the playlist UI (Displays song names)
+    playlist = create_playlist_ui(songs)
+
     # Add all components to the page
-    page.add(selected_playlist, play_btn, audio, pick_file_button)
+    page.add(pick_file_button, selected_playlist, play_btn, playlist)
+
+    # Hardcoded songs (You can replace this with dynamically picked songs if needed)
+    songs.append({"name": "Song 1", "url": "path_to_song_1.mp3"})
+    songs.append({"name": "Song 2", "url": "path_to_song_2.mp3"})
+    
+    # Update UI to reflect the new playlist
+    page.update()
 
 ft.app(target=main)
