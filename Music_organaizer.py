@@ -12,17 +12,18 @@
 # Play Music:
 # The application should allow users to play music directly from the playlist.
 # Implement basic music control
+
 import flet as ft
 
 # Function to initialize and configure the page settings
 def configure_page(page: ft.Page):
     page.title = "Music Organizer"
-    page.bgcolor = "white"
+    page.bgcolor = "00008B"
     page.window.height = 900
     page.window.width = 900
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    
+
 
 # Function to handle the file selection and display a snackbar
 def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page, songs: list):
@@ -33,12 +34,14 @@ def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page, songs: list):
         page.snack_bar.open = True
         page.update()
 
-# Function to initialize the file picker and button
-def create_file_picker(page: ft.Page, songs: list):
+
+# Function to initialize the file picker and button for creating a playlist
+def create_playlist(page: ft.Page, songs: list):
     file_picker = ft.FilePicker(on_result=lambda e: on_file_selected(e, page, songs))
-    page.overlay.append(file_picker)
-    pick_file_button = ft.ElevatedButton("Pick a file", on_click=lambda _: file_picker.pick_files())
+    page.overlay.append(file_picker)  # Adds the file picker to the page overlay
+    pick_file_button = ft.ElevatedButton("Create a playlist", on_click=lambda _: file_picker.pick_files())
     return pick_file_button
+
 
 # Function to handle the song playing logic
 def play_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
@@ -48,8 +51,10 @@ def play_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
             audio.src = song["url"]
             audio.play()
 
+
 def stop_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
     audio.stop()
+
 
 def next_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
     current_index = next((index for index, song in enumerate(songs) if song["name"] == selected_playlist.value), None)
@@ -61,6 +66,7 @@ def next_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
         audio.src = next_song["url"]
         audio.play()
 
+
 def previous_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
     current_index = next((index for index, song in enumerate(songs) if song["name"] == selected_playlist.value), None)
     if current_index is not None:
@@ -71,6 +77,7 @@ def previous_song(selected_playlist: ft.Dropdown, songs: list, audio: ft.Audio):
         audio.src = previous_song["url"]
         audio.play()
 
+
 # Function to create the song player UI components
 def create_song_player(songs: list, audio: ft.Audio):
     selected_playlist = ft.Dropdown(options=[ft.dropdown.Option(song["name"]) for song in songs])
@@ -80,26 +87,42 @@ def create_song_player(songs: list, audio: ft.Audio):
     previous_btn = ft.ElevatedButton("◀ Previous", on_click=lambda e: previous_song(selected_playlist, songs, audio))
     return selected_playlist, play_btn, stop_btn, next_btn, previous_btn
 
-# Function to create the playlist UI components
+
+# Function to create the playlist UI components (Display song names)
 def create_playlist_ui(songs: list):
     playlist_items = [ft.Text(song["name"]) for song in songs]
     playlist = ft.Column(controls=playlist_items)
     return playlist
+
+
+# Function to create a window for the playlist with a name field
+def create_playlist_window(page: ft.Page, songs: list):
+    playlist_name = ft.TextField(label="Playlist name",color="black")
+    
+    # Create the file picker button (and dynamically add songs to the playlist)
+    pick_file_button = create_playlist(page, songs)
+
+    # Container to hold playlist name and file picker button
+    playlist_window = ft.Container(
+        content=ft.Column([playlist_name, pick_file_button]),
+        width=300,
+        height=200,
+        bgcolor="white",
+        visible=False  # Initially hidden
+    )
+    return playlist_window
+
 
 # Main function to setup and run the app
 def main(page: ft.Page):
     # Configure page layout and settings
     configure_page(page)
     
-
     # Define song list (Empty initially)
     songs = []
 
     # Create audio player
     audio = ft.Audio(autoplay=False)
-
-    # Create the file picker button (and dynamically add songs to the playlist)
-    pick_file_button = create_file_picker(page, songs)
 
     # Create the song player controls (dropdown for song selection, play button)
     selected_playlist, play_btn, stop_btn, next_btn, previous_btn = create_song_player(songs, audio)
@@ -107,19 +130,44 @@ def main(page: ft.Page):
     # Create the playlist UI (Displays song names)
     playlist = create_playlist_ui(songs)
     
-    def button_row(align:ft.MainAxisAlignment):
-        return ft.Row(
-        controls=[previous_btn, stop_btn, play_btn, next_btn],alignment=align
-     )
-     
+    # Add song control buttons in a row
+    button_row = ft.Row(
+        controls=[previous_btn, stop_btn, play_btn, next_btn],
+        alignment=ft.MainAxisAlignment.CENTER
+    )
+
     # Add all components to the page
-    page.add(selected_playlist,button_row(ft.MainAxisAlignment.CENTER),audio, pick_file_button)
+    page.add(selected_playlist, button_row, audio)
 
     # Hardcoded songs (You can replace this with dynamically picked songs if needed)
     songs.append({"name": "Song 1", "url": "path_to_song_1.mp3"})
     songs.append({"name": "Song 2", "url": "path_to_song_2.mp3"})
+
+    # Create playlist window (Initially hidden)
+    playlist_window = create_playlist_window(page, songs)
     
+    # Add the playlist window to the page
+    page.add(playlist_window)
+    
+    # Create a button to toggle the visibility of the playlist window
+    toggle_button = ft.ElevatedButton(
+        "Play list creator",
+        on_click=lambda e: toggle_window_visibility(playlist_window)
+    )
+    
+    # Add the toggle button to the page
+    page.add(toggle_button)
+
     # Update UI to reflect the new playlist
     page.update()
+
+
+# Function to toggle the visibility of the playlist window
+def toggle_window_visibility(playlist_window: ft.Container):
+    # Toggle the visibility
+    playlist_window.visible = not playlist_window.visible
+    playlist_window.page.update()  # Refresh the page to apply changes
+
+
 
 ft.app(target=main)
