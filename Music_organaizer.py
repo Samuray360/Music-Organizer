@@ -168,6 +168,39 @@ def toggle_window_visibility(playlist_window: ft.Container):
     playlist_window.visible = not playlist_window.visible
     playlist_window.page.update()  # Refresh the page to apply changes
 
+# Function to handle the file selection and add it to the playlist
+def on_file_selected(e: ft.FilePickerResultEvent, page: ft.Page, songs: list):
+    if e.files:
+        file = e.files[0]
+        songs.append({"name": file.name, "url": file.path})  # Add song to playlist
+        page.snack_bar = ft.SnackBar(ft.Text(f"Added {file.name} to playlist"))
+        page.snack_bar.open = True
+        page.update()
+
+
+# Function to initialize the file picker and button
+def create_file_picker(page: ft.Page, songs: list):
+    file_picker = ft.FilePicker(on_result=lambda e: on_file_selected(e, page, songs))
+    page.overlay.append(file_picker)
+    pick_file_button = ft.ElevatedButton("Pick a file", on_click=lambda _: file_picker.pick_files())
+    return pick_file_button
+
+
+# Function to create the playlist UI components with remove functionality
+def create_playlist_ui(songs: list, page: ft.Page, selected_playlist: ft.Dropdown):
+    playlist_items = [ft.Text(song["name"]) for song in songs]
+    playlist = ft.Column(controls=playlist_items)
+   
+    # Remove song functionality
+    def remove_song():
+        selected_song = selected_playlist.value
+        songs[:] = [song for song in songs if song["name"] != selected_song]  # Remove song from playlist
+        page.update()
+
+
+    remove_btn = ft.ElevatedButton("Remove song", on_click=lambda e: remove_song())
+    playlist.controls.append(remove_btn)  # Add the remove button to the playlist
+    return playlist
 
 
 ft.app(target=main)
