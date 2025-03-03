@@ -13,7 +13,6 @@
 # The application should allow users to play music directly from the playlist.
 # Implement basic music control
 
-
 import flet as ft
 import os
 import json
@@ -80,13 +79,23 @@ def create_playlist_ui(page: ft.Page, songs: list, playlists: dict, selected_pla
 
 # Function to create UI components
 def create_song_player(playlists: dict, audio: ft.Audio):
-    selected_playlist = ft.Dropdown(options=[ft.dropdown.Option(name) for name in playlists.keys()])
+    selected_playlist = ft.Dropdown(options=[ft.dropdown.Option(name) for name in playlists.keys()], label="Select Playlist")
     play_btn = ft.ElevatedButton("▶ Play", on_click=lambda e: play_song(selected_playlist, playlists, audio, 0))
     stop_btn = ft.ElevatedButton("⏸ Stop", on_click=lambda e: stop_song(audio))
     next_btn = ft.ElevatedButton("Next ▶", on_click=lambda e: play_next_song(selected_playlist, playlists, audio, 1))
     previous_btn = ft.ElevatedButton("◀ Previous", on_click=lambda e: play_previous_song(selected_playlist, playlists, audio, -1))
-    remove_btn = ft.ElevatedButton("Remove Song", on_click=lambda e: remove_song_from_playlist(selected_playlist, playlists))
-    return selected_playlist, play_btn, stop_btn, next_btn, previous_btn, remove_btn
+    remove_song_btn = ft.ElevatedButton("Remove Song", on_click=lambda e: remove_song_from_playlist(selected_playlist, song_dropdown))
+    remove_playlist_btn = ft.ElevatedButton("Remove Playlist", on_click=lambda e: remove_playlist(selected_playlist, playlists))
+    song_dropdown = ft.Dropdown(label="Select Song")  # This dropdown will be dynamically populated based on the selected playlist.
+    
+    return selected_playlist, play_btn, stop_btn, next_btn, previous_btn, remove_song_btn, remove_playlist_btn, song_dropdown
+
+# Function to update the song dropdown when a playlist is selected
+def update_song_dropdown(selected_playlist: ft.Dropdown, song_dropdown: ft.Dropdown, playlists: dict):
+    playlist_name = selected_playlist.value
+    if playlist_name in playlists:
+        song_dropdown.options = [ft.dropdown.Option(song["name"]) for song in playlists[playlist_name]]
+        song_dropdown.update()
 
 # Function to play the next song in the playlist
 def play_next_song(selected_playlist, playlists, audio, current_song_index):
@@ -115,14 +124,25 @@ def play_previous_song(selected_playlist, playlists, audio, current_song_index):
         audio.play()
 
 # Function to remove a song from the selected playlist
-def remove_song_from_playlist(selected_playlist, playlists):
+def remove_song_from_playlist(selected_playlist, song_dropdown):
     playlist_name = selected_playlist.value
-    if playlist_name in playlists:
-        song_to_remove = selected_playlist.value  # Placeholder for song removal
+    song_to_remove = song_dropdown.value
+    if playlist_name in playlists and song_to_remove:
         playlists[playlist_name] = [song for song in playlists[playlist_name] if song["name"] != song_to_remove]
         with open(PLAYLIST_FILE, "w") as f:
             json.dump(playlists, f)
         print(f"Removed song {song_to_remove} from playlist {playlist_name}")
+
+# Function to remove a playlist
+def remove_playlist(selected_playlist, playlists):
+    playlist_name = selected_playlist.value
+    if playlist_name in playlists:
+        del playlists[playlist_name]
+        with open(PLAYLIST_FILE, "w") as f:
+            json.dump(playlists, f)
+        selected_playlist.options = [ft.dropdown.Option(name) for name in playlists.keys()]  # Update dropdown
+        selected_playlist.update()
+        print(f"Playlist {playlist_name} removed")
 
 # Function to display/hide songs in the selected playlist
 def toggle_playlist_songs(selected_playlist: ft.Dropdown, playlists: dict, page: ft.Page, playlist_container: ft.Container):
@@ -138,14 +158,24 @@ def main(page: ft.Page):
     configure_page(page)
     songs = load_songs()
     audio = ft.Audio(autoplay=False)
-    selected_playlist, play_btn, stop_btn, next_btn, previous_btn, remove_btn = create_song_player(playlists, audio)
+    selected_playlist, play_btn, stop_btn, next_btn, previous_btn, remove_song_btn, remove_playlist_btn, song_dropdown = create_song_player(playlists, audio)
+
+    # Update the song dropdown when a playlist is selected
+    def update_dropdown_on_playlist_change(e):
+        update_song_dropdown(selected_playlist, song_dropdown, playlists)
+
+    # Attach the event handler to playlist change
+    selected_playlist.change = update_dropdown_on_playlist_change
+
     playlist_window = create_playlist_ui(page, songs, playlists, selected_playlist)
     playlist_container = ft.Container(visible=False)
     show_songs_btn = ft.ElevatedButton("Show/Hide Playlist Songs", on_click=lambda e: toggle_playlist_songs(selected_playlist, playlists, page, playlist_container))
-    button_row = ft.Row(controls=[previous_btn, play_btn, stop_btn, next_btn, remove_btn], alignment=ft.MainAxisAlignment.CENTER)
+
+    button_row = ft.Row(controls=[previous_btn, play_btn, stop_btn, next_btn, remove_song_btn, remove_playlist_btn], alignment=ft.MainAxisAlignment.CENTER)
     
-    playlist_management = ft.Container(content=ft.Column([selected_playlist, show_songs_btn, playlist_window, playlist_container]))
+    playlist_management = ft.Container(content=ft.Column([selected_playlist, song_dropdown, show_songs_btn, playlist_window, playlist_container]))
     
+
     page.add( playlist_management,button_row, audio)
     page.update()
 
