@@ -146,7 +146,7 @@ def main(page: ft.Page):
     
     playlist_management = ft.Container(content=ft.Column([selected_playlist, show_songs_btn, playlist_window, playlist_container]))
     
-    page.add(button_row, playlist_management, audio)
+    page.add( playlist_management,button_row, audio)
     page.update()
 
 ft.app(target=main)
