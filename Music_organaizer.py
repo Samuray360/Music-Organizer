@@ -13,6 +13,18 @@
 # The application should allow users to play music directly from the playlist.
 # Implement basic music control
 
+
+
+# #to do
+# arrelar lo de borrar cancion (Carlos)
+
+# arreglar el aspecto del codigo (ethan)
+
+# poner la duracion y el artista (diego)
+
+# selectionear una cancion individual (Ethan)
+
+# arreglar el reproductor (Carlos)
 import flet as ft
 import os
 import json
